@@ -1,45 +1,44 @@
-
 import paho.mqtt.client as mqtt
 import serial
 import time
+import os
 
-SERIAL_PORT = '/dev/ttyACM0' 
-BAUD_RATE = 9600  
-ser = None 
+SERIAL_PORT = '/dev/ttyACM0'
+BAUD_RATE = 9600
+ser = None
 
-MQTT_BROKER = "localhost" 
+MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 MQTT_TOPIC_SUB = "arduino/led/status"
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Terhubung ke Broker dengan kode hasil: {rc}")
+    print(f"Connected to MQTT broker with result code: {rc}")
     client.subscribe(MQTT_TOPIC_SUB)
-    print(f"Berlangganan ke topik: {MQTT_TOPIC_SUB}")
+    print(f"Subscribed to: {MQTT_TOPIC_SUB}")
 
 def on_message(client, userdata, msg):
-    payload = msg.payload.decode() 
+    payload = msg.payload.decode().strip()
     topic = msg.topic
-    print(f"Pesan MQTT diterima: Topik='{topic}', Pesan='{payload}'")
+    print(f"Topic='{topic}', Message='{payload}'")
 
     if ser and ser.isOpen():
         try:
+            # kirim payload langsung (tambah newline agar Arduino baca)
             ser.write(f"{payload}\n".encode())
-            print(f"-> Mengirim '{payload}' ke Arduino via Serial.")
+            print(f"-> Sent '{payload}' to Arduino via Serial.")
         except serial.SerialException as e:
-            print(f"ERROR mengirim data Serial: {e}")
+            print(f"ERROR: Failed to send data to serial: {e}")
     else:
-        print("Serial port tidak terbuka atau tidak tersedia.")
+        print("Serial port not available.")
 
 def main():
     global ser
-    
     try:
         ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-        time.sleep(2) 
-        print(f"Serial port {SERIAL_PORT} terbuka.")
+        time.sleep(2)  # biar Arduino reset settle
+        print(f"Serial port {SERIAL_PORT} opened.")
     except serial.SerialException as e:
-        print(f"ERROR: Gagal membuka serial port {SERIAL_PORT}. Cek kabel dan izin port.")
-        print(e)
+        print(f"ERROR: Failed to open serial port {SERIAL_PORT}: {e}")
         return
 
     client = mqtt.Client()
@@ -49,11 +48,11 @@ def main():
     try:
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
     except Exception as e:
-        print(f"ERROR: Gagal terhubung ke MQTT Broker. Cek Mosquitto service.")
+        print(f"ERROR: Failed to connect to MQTT Broker at {MQTT_BROKER}:{MQTT_PORT}")
         print(e)
         return
 
     client.loop_forever()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
