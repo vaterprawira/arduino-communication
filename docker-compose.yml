@@ -6,9 +6,19 @@ services:
     container_name: mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"   # MQTT
-
+      - "1883:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+
+  mqtt-bridge:
+    build: .
+    container_name: arduino-mqtt-bridge
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
+    environment:
+      - MQTT_BROKER=mosquitto
