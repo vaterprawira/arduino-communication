@@ -1,0 +1,67 @@
+import paho.mqtt.client as mqtt
+import serial
+import time
+
+SERIAL_PORT = '/dev/ttyACM0' 
+BAUD_RATE = 9600 
+ser = None
+
+MQTT_BROKER = "localhost" 
+MQTT_PORT = 1883
+MQTT_TOPIC_SUB = "arduino/led/status" # Topik yang dilanggani
+
+# --- Fungsi yang dipanggil ketika koneksi ke Broker terjalin ---
+def on_connect(client, userdata, flags, rc):
+    print(f"Terhubung ke Broker dengan kode hasil: {rc}")
+    # Berlangganan ke topik setelah koneksi sukses
+    client.subscribe(MQTT_TOPIC_SUB)
+    print(f"Berlangganan ke topik: {MQTT_TOPIC_SUB}")
+
+# --- Fungsi yang dipanggil ketika pesan MQTT diterima ---
+def on_message(client, userdata, msg):
+    payload = msg.payload.decode() # Dekode pesan dari byte menjadi string
+    topic = msg.topic
+    print(f"Pesan MQTT diterima: Topik='{topic}', Pesan='{payload}'")
+
+    # Kirim payload ('1' atau '0') ke Arduino melalui Serial
+    if ser and ser.isOpen():
+        try:
+            # Mengirim pesan sebagai byte, diakhiri dengan newline
+            ser.write(f"{payload}\n".encode())
+            print(f"-> Mengirim '{payload}' ke Arduino via Serial.")
+        except serial.SerialException as e:
+            print(f"ERROR mengirim data Serial: {e}")
+    else:
+        print("Serial port tidak terbuka atau tidak tersedia.")
+
+def main():
+    global ser
+    
+    try:
+        ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+        time.sleep(2) # Tunggu sebentar agar koneksi Serial stabil
+        print(f"Serial port {SERIAL_PORT} terbuka.")
+    except serial.SerialException as e:
+        print(f"ERROR: Gagal membuka serial port {SERIAL_PORT}. Cek kabel dan izin port.")
+        print(e)
+        return
+
+    # Inisialisasi Klien MQTT
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    try:
+        # Coba koneksi ke broker Mosquitto lokal
+        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    except Exception as e:
+        print(f"ERROR: Gagal terhubung ke MQTT Broker. Cek Mosquitto service.")
+        print(e)
+        return
+
+    # Loop utama untuk memproses pesan MQTT (blocking call)
+    client.loop_forever()
+
+if __name__ == '__main__':
+    main()
+
