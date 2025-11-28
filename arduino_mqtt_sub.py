@@ -9,7 +9,8 @@ BAUD_RATE = 9600
 ser = None
 
 # MQTT Broker
-MQTT_BROKER = "10.1.33.26"
+#MQTT_BROKER = "10.1.33.26"
+MQTT_BROKER = "10.1.11.225"
 MQTT_PORT = 1883
 MQTT_TOPIC_STATE = "mqtt/state"
 MQTT_TOPIC_TIME = "mqtt/timestamp"

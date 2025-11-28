@@ -12,9 +12,9 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
-  mqtt-bridge:
+  arduino_bridge:
     build: .
-    container_name: arduino-mqtt-bridge
+    container_name: arduino_bridge
     restart: unless-stopped
     depends_on:
       - mosquitto
