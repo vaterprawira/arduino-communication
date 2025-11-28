@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  arduino_bridge:
+    build: .
+    container_name: arduino_bridge
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
+    environment:
+      - MQTT_BROKER=mosquitto
